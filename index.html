@@ -110,6 +110,8 @@ button:focus-visible, textarea:focus-visible, .day:focus-visible { outline: 3px 
   box-shadow: var(--shadow);
 }
 .scene canvas { display: block; width: 100%; height: 100%; }
+.scene canvas#scene3d { position: absolute; inset: 0; }
+.scene.is3d::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.16) 100%); }
 .chip {
   position: absolute; left: 12px; top: 12px;
   background: rgba(255, 255, 255, 0.88); color: #2a3a14;
@@ -332,6 +334,97 @@ textarea {
 @keyframes leaffall { 0% { transform: translate(0, -18px) rotate(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(18px, 14px) rotate(160deg); opacity: 1; } }
 @keyframes cloudin { from { transform: translateX(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .sheet, .toast, .toast.out { animation: none; } body { transition: none; } }
+
+/* grove delete */
+.tdel { color: var(--warn); }
+/* settings */
+.set-head { display: flex; align-items: center; gap: 10px; margin: 2px 0 4px; }
+.set-head h2.page { margin: 0; }
+.skins { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.skin {
+  border: 0; background: var(--surface-2); border-radius: 20px; padding: 8px 6px 10px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 600; font-size: 13px; color: var(--ink); touch-action: manipulation;
+}
+.skin canvas { width: 100%; aspect-ratio: 2 / 3; display: block; }
+.skin[aria-checked="true"] { box-shadow: 0 0 0 3px var(--btn) inset; }
+.card h3 { margin: 14px 0 0; font-size: 14px; font-weight: 600; }
+.skin .on { font-size: 11px; font-weight: 600; color: var(--on-btn); background: var(--btn); border-radius: 999px; padding: 1px 8px; }
+.sky3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--surface-2); border-radius: 999px; padding: 4px; margin-top: 8px; }
+.sky3 button { border: 0; background: none; border-radius: 999px; min-height: 40px; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.sky3 button[aria-checked="true"] { background: var(--btn); color: var(--on-btn); }
+.saved { display: flex; align-items: center; gap: 10px; margin: 6px 0 4px; font-weight: 600; font-size: 14.5px; }
+.saved i { width: 10px; height: 10px; border-radius: 50%; background: var(--good); flex: none; }
+
+/* ===== Toy-style 3D interface: chunky buttons with a pressable edge, raised clay cards, sunken wells ===== */
+:root { --btn-top: #62793a; --btn-edge: #2f3d18; --ghost-edge: #c9d3b4; --card-edge: rgba(46, 62, 24, 0.13); --hi: rgba(255, 255, 255, 0.75); --well: rgba(46, 62, 24, 0.12); --danger-edge: #7e2c19; }
+:root[data-mode="night"] { --btn-top: #d9eaa6; --btn-edge: #7d9548; --ghost-edge: #0b1209; --card-edge: rgba(0, 0, 0, 0.5); --hi: rgba(255, 255, 255, 0.07); --well: rgba(0, 0, 0, 0.35); --danger-edge: #6e2416; }
+
+.brand { text-shadow: 0 1px 0 var(--hi), 0 3px 0 var(--card-edge); }
+.card, .tcard, .plant {
+  box-shadow: 0 6px 0 var(--card-edge), 0 14px 26px rgba(46, 62, 24, 0.14), inset 0 2px 0 var(--hi), inset 0 -2px 0 rgba(0, 0, 0, 0.03);
+}
+.tcard.on, .plant[aria-checked="true"] { box-shadow: 0 0 0 3px var(--btn) inset, 0 6px 0 var(--card-edge), 0 14px 26px rgba(46, 62, 24, 0.14); }
+
+.btn { position: relative; transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s; }
+.btn.primary {
+  background: linear-gradient(180deg, var(--btn-top) 0%, var(--btn) 55%);
+  box-shadow: 0 6px 0 var(--btn-edge), 0 12px 20px rgba(30, 44, 14, 0.28), inset 0 2px 0 rgba(255, 255, 255, 0.28);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+}
+.btn.ghost { box-shadow: 0 5px 0 var(--ghost-edge), 0 10px 16px rgba(46, 62, 24, 0.12), inset 0 2px 0 var(--hi); }
+.btn.danger { background: linear-gradient(180deg, #d4664b 0%, var(--warn) 55%); box-shadow: 0 6px 0 var(--danger-edge), 0 12px 20px rgba(120, 40, 20, 0.28), inset 0 2px 0 rgba(255, 255, 255, 0.25); }
+.btn:active:not(:disabled) { transform: translateY(5px); }
+.btn.primary:active:not(:disabled) { box-shadow: 0 1px 0 var(--btn-edge), 0 3px 8px rgba(30, 44, 14, 0.25), inset 0 2px 0 rgba(255, 255, 255, 0.2); }
+.btn.ghost:active:not(:disabled) { box-shadow: 0 0 0 var(--ghost-edge), 0 3px 6px rgba(46, 62, 24, 0.12), inset 0 2px 4px rgba(0, 0, 0, 0.06); }
+.btn.danger:active:not(:disabled) { box-shadow: 0 1px 0 var(--danger-edge), 0 3px 8px rgba(120, 40, 20, 0.25); }
+
+.icon-btn, .tedit, .done .link, .hpill {
+  background: radial-gradient(circle at 35% 28%, var(--hi), transparent 60%), var(--surface);
+  box-shadow: 0 4px 0 var(--ghost-edge), 0 8px 14px rgba(46, 62, 24, 0.14), inset 0 1px 0 var(--hi);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.tedit, .done .link { background: radial-gradient(circle at 35% 28%, var(--hi), transparent 60%), var(--surface-2); }
+.hpill.on { background: linear-gradient(180deg, var(--btn-top), var(--btn) 60%); box-shadow: 0 4px 0 var(--btn-edge), 0 8px 14px rgba(30, 44, 14, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.icon-btn:active, .tedit:active, .done .link:active, .hpill:active { transform: translateY(4px); box-shadow: 0 0 0 var(--ghost-edge), 0 2px 5px rgba(46, 62, 24, 0.14); }
+
+/* sunken wells with a raised chip for the selected option */
+.segs, .sky3 { box-shadow: inset 0 3px 6px var(--well), inset 0 -1px 0 var(--hi); background: var(--surface-2); }
+.seg[aria-current="page"], .sky3 button[aria-checked="true"] {
+  background: linear-gradient(180deg, var(--btn-top), var(--btn) 60%);
+  box-shadow: 0 4px 0 var(--btn-edge), 0 6px 10px rgba(30, 44, 14, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+.seg, .sky3 button { transition: transform 0.12s ease; }
+
+/* garden and grove pictures sit in a thick white frame */
+.scene, .grove { border: 5px solid var(--surface); box-shadow: 0 7px 0 var(--card-edge), 0 18px 32px rgba(46, 62, 24, 0.2), inset 0 0 0 1px rgba(0, 0, 0, 0.05); box-sizing: border-box; }
+.chip { box-shadow: 0 3px 0 rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8); }
+
+/* health bar: sunken track, glossy fill */
+.bar { box-shadow: inset 0 2px 3px var(--well); height: 10px; }
+.bar > span { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 60%); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12); }
+
+/* floating tab bar */
+.tabs { box-shadow: 0 7px 0 rgba(20, 30, 8, 0.45), 0 16px 30px rgba(30, 44, 14, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.15); }
+.tab[aria-current="page"] { box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25), inset 0 1px 0 #fff; transform: translateY(-2px); }
+
+/* calendar days are little raised buttons */
+.day { box-shadow: 0 3px 0 var(--ghost-edge), inset 0 1px 0 var(--hi); transition: transform 0.08s ease; }
+.day.clean { box-shadow: 0 3px 0 #3c5a1a, inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.day.missed { box-shadow: 0 3px 0 #7e2c19, inset 0 1px 0 rgba(255, 255, 255, 0.2); }
+.day.auto { box-shadow: inset 0 0 0 2px var(--warn), 0 3px 0 var(--ghost-edge); }
+.day.today { box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 4.5px var(--ink), 0 6px 0 var(--ghost-edge); }
+.day:active:not(:disabled) { transform: translateY(3px); }
+.day:disabled { box-shadow: none; }
+
+/* gardener picker cards, seed picker, sheets, toasts */
+.skin, .seed-pick button { box-shadow: 0 4px 0 var(--ghost-edge), inset 0 1px 0 var(--hi); transition: transform 0.08s ease; }
+.skin[aria-checked="true"] { box-shadow: 0 0 0 3px var(--btn) inset, 0 1px 0 var(--ghost-edge); transform: translateY(3px); }
+.seed-pick button[aria-checked="true"] { box-shadow: 0 1px 0 var(--ghost-edge); transform: translateY(3px); }
+.sheet { box-shadow: 0 -8px 0 rgba(255, 255, 255, 0.35), 0 -18px 40px rgba(0, 0, 0, 0.25); }
+.toast { box-shadow: 0 5px 0 var(--ghost-edge), 0 12px 28px rgba(20, 30, 10, 0.3); }
+.field, textarea { box-shadow: inset 0 3px 5px var(--well); }
+@media (prefers-reduced-motion: reduce) { .btn, .icon-btn, .tedit, .hpill, .seg, .day, .skin { transition: none; } }
 </style>
 
 <div class="app" id="app">
@@ -339,8 +432,8 @@ textarea {
     <h1 class="brand">Grove Days<small id="sub">Your garden</small></h1>
     <div class="top-actions">
       <button id="skyBtn" class="icon-btn" type="button" aria-label="Sky: automatic"></button>
-      <button id="dataBtn" class="icon-btn" type="button" aria-label="Backup and restore">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 20h14"/></svg>
+      <button id="setBtn" class="icon-btn" type="button" aria-label="Settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
       </button>
     </div>
   </header>
@@ -356,6 +449,7 @@ textarea {
       <div class="hpills" id="hpills" hidden></div>
       <div class="scene">
         <canvas id="scene" role="img" aria-label="Your garden"></canvas>
+        <canvas id="scene3d" hidden aria-hidden="true"></canvas>
         <div class="chip" id="chip">Day 1</div>
       </div>
       <div class="alert" id="alert" hidden></div>
@@ -397,6 +491,36 @@ textarea {
       <div class="trees" id="trees"></div>
       <div class="actions"><button class="btn primary" type="button" id="addTree">Add a tree</button></div>
     </section>
+
+    <section id="screen-settings" class="screen" data-screen="settings" hidden>
+      <div class="set-head">
+        <button class="icon-btn" id="setBack" type="button" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <h2 class="page">Settings</h2>
+      </div>
+      <div class="card">
+        <h2>Gardener</h2>
+        <p class="sub">Choose who looks after your garden and what they wear. It is saved with your garden.</p>
+        <h3 id="peopleHead">Who</h3>
+        <div class="skins" id="people" role="radiogroup" aria-label="Who is gardening"></div>
+        <h3>Outfit</h3>
+        <div class="skins" id="skins" role="radiogroup" aria-label="Outfit"></div>
+      </div>
+      <div class="card">
+        <h2>Sky</h2>
+        <p class="sub">Follow the time of day, or keep it always day or always night.</p>
+        <div class="sky3" id="skySet" role="radiogroup" aria-label="Sky">
+          <button type="button" role="radio" data-sky="auto">Automatic</button>
+          <button type="button" role="radio" data-sky="day">Day</button>
+          <button type="button" role="radio" data-sky="night">Night</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Your data</h2>
+        <p class="saved"><i aria-hidden="true"></i><span id="savedTxt">Saved automatically on this device</span></p>
+        <p class="sub">Every change is saved on this phone the moment you make it. Nothing is uploaded anywhere.</p>
+        <div class="stack"><button class="btn ghost" type="button" id="extraBackup">Backup code (optional)</button></div>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -420,6 +544,7 @@ textarea {
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1"></div>
 </div>
 
+<script src="lib/grove3d.js"></script>
 <script>
 (() => {
 'use strict';
@@ -561,7 +686,9 @@ function decodeState(code) {
     } else { const h = normHabit(Object.assign({}, s, { id: 'h0' }), 0); habits = h ? [h] : []; }
     if (!habits.length) return null;
     const active = habits.some(h => h.id === s.active) ? s.active : habits[0].id;
-    return { habits: habits, active: active, sky: sky };
+    const skin = (typeof s.skin === 'string' && /^[a-z0-9-]{1,24}$/.test(s.skin)) ? s.skin : 'classic';
+    const person = (typeof s.person === 'string' && /^[a-z0-9-]{1,24}$/.test(s.person)) ? s.person : 'hammad';
+    return { habits: habits, active: active, sky: sky, skin: skin, person: person };
   } catch (e) { return null; }
 }
 
@@ -605,7 +732,7 @@ function loadState() {
   try { const raw = localStorage.getItem(KEY); if (raw) return decodeState(raw); } catch (e) {}
   return null;
 }
-function saveState() { try { if (store) localStorage.setItem(KEY, encodeState(store)); } catch (e) {} }
+function saveState() { try { if (store) { localStorage.setItem(KEY, encodeState(store)); localStorage.setItem(KEY + '-at', String(Date.now())); } } catch (e) {} }
 const newId = () => 'h' + Date.now().toString(36).slice(-6) + Math.floor(Math.random() * 36).toString(36);
 const RM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const $ = id => document.getElementById(id);
@@ -613,7 +740,11 @@ const todayStr = () => localStr(new Date());
 let TODAY = todayStr();
 let isNew = false;
 store = loadState();
-if (!store) { isNew = true; const id = newId(); store = { habits: [{ id: id, name: 'My first tree', plant: 'apple', start: TODAY, marks: {}, history: [] }], active: id, sky: 'auto' }; }
+if (!store) { isNew = true; const id = newId(); store = { habits: [{ id: id, name: 'My first tree', plant: 'apple', start: TODAY, marks: {}, history: [] }], active: id, sky: 'auto', skin: 'classic' }; }
+if (!store.skin) store.skin = 'classic';
+if (!store.person) store.person = 'hammad';
+/* ask the browser to keep this data for good, so it is never cleared to free space */
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
 state = store.habits.find(h => h.id === store.active) || store.habits[0];
 
 /* ---------- trees ---------- */
@@ -907,6 +1038,60 @@ function drawPests(g, S, sp, cd, t) {
   }
 }
 
+/* ---------- gardener looks ----------
+   Each look recolours the hat, the t-shirt and the boots of the body and sitting sprites.
+   Values are [hue, saturation x, brightness x]. Friend faces will be added here as extra sprite sets. */
+const SKINS = [
+  { id: 'classic', name: 'Classic' },
+  { id: 'ocean', name: 'Ocean', hat: [188, 1, 1], shirt: [212, 0.85, 0.92], boots: [200, 0.75, 0.85] },
+  { id: 'sunset', name: 'Sunset', hat: [26, 1.05, 1.05], shirt: [278, 0.62, 0.85], boots: [6, 0.85, 0.88] },
+  { id: 'sakura', name: 'Sakura', hat: [335, 0.55, 1.08], shirt: [0, 0.06, 1.25], boots: [335, 0.55, 1.05] },
+  { id: 'midnight', name: 'Midnight', hat: [248, 0.55, 0.62], shirt: [0, 0, 0.42], boots: [0, 0, 0.32] }
+];
+const SHIRT_FROM = { 'g-body': 212 / 450, 'g-sit': 296 / 450 };   /* t-shirt starts below the mouth */
+function rgb2hsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) { if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h *= 60; if (h < 0) h += 360; }
+  return [h, mx ? d / mx : 0, mx];
+}
+function hsv2rgb(h, s, v) {
+  const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+const curSkin = () => SKINS.find(k => k.id === store.skin) || SKINS[0];
+function buildSkin(sk) {
+  if (!sk.hat) return;
+  Object.keys(SHIRT_FROM).forEach(n => {
+    const key = n + '@' + sk.id; if (IMG[key] || !IMG[n]) return;
+    const im = IMG[n], c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+    const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+    let d; try { d = g.getImageData(0, 0, c.width, c.height); } catch (e) { return; }
+    const p = d.data, w = c.width, shirtY = SHIRT_FROM[n] * c.height, bootY = 0.8 * c.height;
+    for (let i = 0; i < p.length; i += 4) {
+      if (p[i + 3] < 8) continue;
+      const y = (i / 4 / w) | 0, hsv = rgb2hsv(p[i], p[i + 1], p[i + 2]), H = hsv[0], S2 = hsv[1], V2 = hsv[2];
+      let t = null;
+      if (H > 70 && H < 145 && S2 > 0.22 && V2 > 0.15) t = sk.hat;
+      else if ((H < 16 || H > 344) && S2 > 0.3 && V2 > 0.25 && y >= shirtY) t = sk.shirt;
+      else if (H > 33 && H < 58 && S2 > 0.45 && V2 > 0.35 && y >= bootY) t = sk.boots;
+      if (!t) continue;
+      const rgb = hsv2rgb(t[0], clamp(S2 * t[1], 0, 1), clamp(V2 * t[2], 0, 1));
+      p[i] = rgb[0]; p[i + 1] = rgb[1]; p[i + 2] = rgb[2];
+    }
+    g.putImageData(d, 0, 0); IMG[key] = c;
+  });
+}
+/* sprite name for a gardener part in the chosen look */
+function gp(n, sk) {
+  sk = sk || curSkin();
+  if (!sk.hat || SHIRT_FROM[n] == null) return n;
+  const k = n + '@' + sk.id; if (!IMG[k]) buildSkin(sk);
+  return IMG[k] ? k : n;
+}
+
 /* ---------- the gardener ---------- */
 const GK = 0.21;                  /* logical px per svg unit */
 const G = { x: 112, y: GROUND, dir: 1, mode: 'idle', arm: -2.75, canA: 0, jump: 0, walking: false, goal: null, force: null, next: 2, bubble: null, sit: false, pourT: 0, hearts: 0 };
@@ -991,13 +1176,13 @@ function drawGardener(g, t) {
   };
   if (G.sit) {
     g.scale(GK, GK); g.translate(-200, -552 + Math.sin(t * 1.6) * 1.5);
-    img('g-sit'); img('g-sitwave', G.arm, 122, 456);
+    img(gp('g-sit')); img('g-sitwave', G.arm, 122, 456);
   } else {
     const walk = G.walking ? Math.abs(Math.sin(t * 10)) * 8 : Math.sin(t * 1.8) * 1.2;
     g.scale(GK, GK); g.translate(-200, -548 - walk * (G.walking ? 0.6 : 0.4));
     if (G.walking) { g.translate(200, 548); g.rotate(Math.sin(t * 10) * 0.04); g.translate(-200, -548); }
     img('g-can', G.canA, 282, 376);
-    img('g-body');
+    img(gp('g-body'));
     img('g-rarm', G.canA * 0.15, 278, 344);
     img('g-wave', G.arm, 122, 344);
   }
@@ -1135,6 +1320,11 @@ const curS = () => peek ? PS : S;
 const view = { cd: 0, health: 100, day: 1, hours: 11.5, leaves: [], fx: null };
 view.cd = S.clean; view.health = S.health;
 const cv = $('scene'), ctx = cv.getContext('2d');
+let G3 = null, DT = 0.016;
+try {
+  if (window.Grove3D) { G3 = window.Grove3D.create($('scene3d')); }
+  if (G3) { $('scene3d').hidden = false; cv.style.visibility = 'hidden'; cv.parentNode.classList.add('is3d'); }
+} catch (e) { G3 = null; }
 let T = 0, running = false, lastTs = 0, screen = 'garden', rosterTick = 0;
 
 function hoursNow() { const d = new Date(); return d.getHours() + d.getMinutes() / 60; }
@@ -1158,7 +1348,24 @@ function fit() {
   ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
   if (!running) draw();
 }
-function draw() { if (READY) drawScene(ctx, view, curS(), state.plant, T); }
+function draw() {
+  if (!READY) return;
+  if (G3) {
+    try { draw3D(); return; } catch (e) { console.error(e); G3 = null; $('scene3d').hidden = true; cv.style.visibility = ''; cv.parentNode.classList.remove('is3d'); }
+  }
+  drawScene(ctx, view, curS(), state.plant, T);
+}
+function draw3D() {
+  const cs = curS(), night = view.day < 0.45, R = roster(cs, night), r = $('scene3d').getBoundingClientRect();
+  if (!r.width) return;
+  G3.frame({
+    t: T, dt: DT, day: view.day, hours: view.hours,
+    w: Math.round(r.width), h: Math.round(r.height), dpr: Math.min(window.devicePixelRatio || 1, 2),
+    paintSky: g => drawBackdrop(g, view.day, T, view.hours, cs.severity),
+    sim: cs, R: R, cd: view.cd, health: view.health, sp: state.plant, extras: extraSpecies(state.plant),
+    G: G, RB: RB, fx: view.fx, skin: store.skin, person: store.person, owlPick: ((dnum(TODAY) % 3) + 3) % 3
+  });
+}
 function step(dt) {
   T += dt;
   const cs = curS(), tg = dayTarget(); view.hours = tg.hours;
@@ -1180,7 +1387,7 @@ function step(dt) {
 function frame(ts) {
   if (!running) return;
   const dt = Math.min(0.05, (ts - lastTs) / 1000 || 0.016); lastTs = ts;
-  step(dt); draw();
+  DT = dt; step(dt); draw();
   requestAnimationFrame(frame);
 }
 function startLoop() { if (RM || running || screen !== 'garden' || document.hidden || !READY) return; running = true; lastTs = performance.now(); requestAnimationFrame(frame); }
@@ -1288,8 +1495,14 @@ function renderRoad() {
   const wk = Math.ceil(left / 5 * 7);
   $('road').innerHTML = '<h2>Road to a flourished garden</h2><p class="sub">Clean days needed for each stage. Dates assume every remaining day is clean.</p><ul class="road">' + rows + '</ul>' +
     '<p class="road-note">' + (left === 0 ? 'Your garden is fully flourished.' : 'A flourished garden needs 30 clean days: about ' + left + ' more days with no misses, or roughly ' + wk + ' days if you miss 2 a week.') + ' Misses never remove growth, but they cost health, and 3 in a week bring pests.</p>' +
-    '<div class="actions" style="margin-top:6px"><button class="btn ghost" type="button" id="peekBtn">' + (peek ? 'Back to my garden' : 'Peek at a flourished garden') + '</button></div>';
+    '<div class="actions" style="margin-top:6px"><button class="btn ghost" type="button" id="peekBtn">' + (peek ? 'Show my actual garden' : 'Preview a fully flourished garden') + '</button></div>';
   $('peekBtn').addEventListener('click', () => { peek = !peek; if (!peek) { snap(); syncRoster(true); } else { tq = []; } renderGarden(); if (!running) { snap(); draw(); } window.scrollTo({ top: 0, behavior: 'smooth' }); });
+}
+function exitPeek() {
+  if (!peek) return;
+  peek = false; snap(); syncRoster(true); renderGarden();
+  if (!running) { snap(); draw(); }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function renderGarden() {
   const s = S;
@@ -1311,7 +1524,10 @@ function renderGarden() {
   } else al.hidden = true;
 
   const a = $('actions'); a.innerHTML = '';
-  if (s.dead) {
+  if (peek) {
+    a.innerHTML = '<button class="btn primary" type="button" id="peekExit">Show my actual garden</button>';
+    $('peekExit').addEventListener('click', exitPeek);
+  } else if (s.dead) {
     a.innerHTML = '<button class="btn primary" type="button" id="replantBtn">Plant a new seed</button>';
     $('replantBtn').addEventListener('click', () => doReplant());
   } else if (s.today === 'p') {
@@ -1384,13 +1600,14 @@ function habitBadge(sim) {
   return '';
 }
 const PENCIL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4zM14 7l3 3"/></svg>';
+const TRASH = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg>';
 function renderGrove() {
   const box = $('trees'); box.innerHTML = '';
   $('groveLead').textContent = store.habits.length === 1 ? 'One tree so far. Add a tree for anything new you want to track. Each one grows on its own.' : store.habits.length + ' trees growing. Tap a tree to open it.';
   store.habits.forEach(h => {
     const sim = simulate(h, TODAY), P = PLANTS[h.plant];
     const card = document.createElement('div'); card.className = 'tcard' + (h.id === store.active ? ' on' : '');
-    card.innerHTML = '<button type="button" class="tmain" data-open="' + h.id + '"><span class="ttile" style="background:' + P.tile + '"><img alt="" src="' + SPR[stageSprite(h.plant, sim)] + '"></span><span class="tinfo"><span class="tname"></span><span class="tsub">' + P.name + ' · ' + (sim.dead ? 'Died' : STAGES[sim.stage].name) + ' · Day ' + sim.dayNo + '</span><span class="tstats">Streak ' + sim.streak + ' · Clean ' + sim.clean + ' · Health ' + Math.round(sim.health) + '%</span></span>' + habitBadge(sim) + '</button><button type="button" class="tedit" data-edit="' + h.id + '" aria-label="Edit this tree">' + PENCIL + '</button>';
+    card.innerHTML = '<button type="button" class="tmain" data-open="' + h.id + '"><span class="ttile" style="background:' + P.tile + '"><img alt="" src="' + SPR[stageSprite(h.plant, sim)] + '"></span><span class="tinfo"><span class="tname"></span><span class="tsub">' + P.name + ' · ' + (sim.dead ? 'Died' : STAGES[sim.stage].name) + ' · Day ' + sim.dayNo + '</span><span class="tstats">Streak ' + sim.streak + ' · Clean ' + sim.clean + ' · Health ' + Math.round(sim.health) + '%</span></span>' + habitBadge(sim) + '</button><button type="button" class="tedit" data-edit="' + h.id + '" aria-label="Edit this tree">' + PENCIL + '</button><button type="button" class="tedit tdel" data-del="' + h.id + '" aria-label="Delete this tree">' + TRASH + '</button>';
     card.querySelector('.tname').textContent = h.name;
     box.appendChild(card);
   });
@@ -1399,9 +1616,10 @@ function renderGrove() {
   requestAnimationFrame(drawGroveCanvas);
 }
 $('trees').addEventListener('click', e => {
-  const o = e.target.closest('[data-open]'), ed = e.target.closest('[data-edit]');
+  const o = e.target.closest('[data-open]'), ed = e.target.closest('[data-edit]'), dl = e.target.closest('[data-del]');
   if (o) { switchTo(o.dataset.open); showScreen('garden'); }
   else if (ed) openEditTree(ed.dataset.edit);
+  else if (dl) openDeleteTree(dl.dataset.del);
 });
 function groveTree(g, sp, cd, health, dead, x, s) {
   const hb = hBucket(health);
@@ -1424,7 +1642,16 @@ function drawGroveCanvas() {
   g.translate(0, -oy); drawBackdrop(g, day, 1.5, tg.hours, 0);
   const n = store.habits.length, s = n <= 2 ? 0.7 : n <= 4 ? 0.52 : 0.4;
   const pos = i => (i + 0.5) * W / n;
-  store.habits.forEach((h, i) => {
+  let did3d = false;
+  if (G3) {
+    try {
+      g.restore(); g.save();
+      const res = G3.renderGrove({ w: Math.round(r.width), h: Math.round(r.height), dpr: d, day: day, trees: store.habits.map(h => { const sim = simulate(h, TODAY); return { sp: h.plant, cd: sim.clean, health: sim.health, dead: sim.dead }; }) });
+      g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(res.canvas, 0, 0, cvg.width, cvg.height); res.restore();
+      g.setTransform(sc, 0, 0, sc, 0, 0); did3d = true;
+    } catch (e) { console.error(e); }
+  }
+  if (!did3d) store.habits.forEach((h, i) => {
     const sim = simulate(h, TODAY), x = pos(i);
     g.fillStyle = 'rgba(0,0,0,0.14)'; g.beginPath(); g.ellipse(x, 334, 46 * s * (n > 4 ? 1.1 : 1), 6, 0, 0, TAU); g.fill();
     groveTree(g, h.plant, sim.clean, sim.health, sim.dead, x, s);
@@ -1432,8 +1659,11 @@ function drawGroveCanvas() {
   g.restore();
   /* name tags, drawn in screen space */
   g.font = '600 11px Poppins, system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  /* in 3D, trees sit 2.4 m apart and the camera stands back far enough to fit them all */
+  const n3 = store.habits.length, camZ = Math.max(5.6, n3 * 2.4 * 1.2), halfW = camZ * Math.tan(14 * Math.PI / 180) * (r.width / r.height);
+  const tagX = i => G3 ? W / 2 + ((i - (n3 - 1) / 2) * 2.4 / halfW) * W / 2 : pos(i);
   store.habits.forEach((h, i) => {
-    const x = pos(i), y = gh - 16, label = h.name.length > 11 ? h.name.slice(0, 10) + '…' : h.name, w = g.measureText(label).width + 16;
+    const x = tagX(i), y = gh - 16, label = h.name.length > 11 ? h.name.slice(0, 10) + '…' : h.name, w = g.measureText(label).width + 16;
     g.fillStyle = h.id === store.active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.7)';
     g.beginPath(); g.roundRect ? g.roundRect(x - w / 2, y - 9, w, 18, 9) : g.rect(x - w / 2, y - 9, w, 18); g.fill();
     g.fillStyle = '#2a3a14'; g.fillText(label, x, y + 0.5);
@@ -1515,16 +1745,107 @@ function openEditTree(id) {
   });
 }
 $('addTree').addEventListener('click', openAddTree);
+function openDeleteTree(id) {
+  const h = store.habits.find(x => x.id === id); if (!h) return;
+  const only = store.habits.length < 2;
+  openSheet('<p class="eyebrow">Delete tree</p><h2 id="sheetTitle"></h2>' +
+    '<p class="note">This removes the tree and every day you marked for it. It cannot be undone.</p>' +
+    (only ? '<p class="note warn">This is your only tree. After deleting it you will plant a new seed.</p>' : '') +
+    '<div class="stack"><button class="btn danger" type="button" id="delYes">Delete this tree</button><button class="btn ghost" type="button" id="delNo">Cancel</button></div>', 'delNo');
+  $('sheetTitle').textContent = 'Delete ' + h.name + '?';
+  $('delNo').addEventListener('click', closeSheet);
+  $('delYes').addEventListener('click', () => deleteTree(id));
+}
+function deleteTree(id) {
+  const h = store.habits.find(x => x.id === id); if (!h) return;
+  if (store.habits.length < 2) {
+    const nid = newId();
+    store.habits = [{ id: nid, name: 'My first tree', plant: 'apple', start: TODAY, marks: {}, history: [] }];
+    store.active = nid; state = store.habits[0]; S = simulate(state, TODAY); snap(); prevR = null; peek = false;
+    saveState(); closeSheet(); renderAll(); syncRoster(true); showScreen('garden'); openWelcome();
+    return;
+  }
+  store.habits = store.habits.filter(x => x.id !== id);
+  if (store.active === id) { store.active = store.habits[0].id; state = store.habits[0]; S = simulate(state, TODAY); snap(); prevR = null; }
+  saveState(); closeSheet(); renderAll(); syncRoster(true); renderGrove();
+  emitToasts([{ msg: h.name + ' was deleted', tone: 'info' }]);
+}
 
+let backTo = 'garden';
 function showScreen(name) {
+  if (name === 'settings' && screen !== 'settings') backTo = screen;
   screen = name;
   document.querySelectorAll('.screen').forEach(sc => { sc.hidden = sc.dataset.screen !== name; });
   document.querySelectorAll('[data-tab]').forEach(tb => { if (tb.dataset.tab === name) tb.setAttribute('aria-current', 'page'); else tb.removeAttribute('aria-current'); });
   if (name === 'garden') { fit(); startLoop(); } else stopLoop();
   if (name === 'calendar') { initCal(); renderCalendar(); }
   if (name === 'themes') renderGrove();
+  if (name === 'settings') renderSettings();
   try { window.scrollTo(0, 0); } catch (e) {}
 }
+function drawSkinPreview(cv, sk, person) {
+  const d = Math.min(window.devicePixelRatio || 1, 3), r = cv.getBoundingClientRect();
+  const w = Math.max(1, Math.round((r.width || 100) * d)), h = Math.round(w * 1.5);
+  cv.width = w; cv.height = h;
+  const g = cv.getContext('2d'); g.clearRect(0, 0, w, h);
+  if (!READY) return;
+  if (G3) {
+    try { const cw = Math.round(r.width || 100), res = G3.renderPortrait(person || store.person, sk.id, cw, Math.round(cw * 1.5), Math.min(d, 2)); g.drawImage(res.canvas, 0, 0, w, h); res.restore(); return; } catch (e) { console.error(e); }
+  }
+  const k = w / 400; g.save(); g.scale(k, k);
+  g.fillStyle = 'rgba(0,0,0,0.12)'; g.beginPath(); g.ellipse(200, 552, 100, 12, 0, 0, TAU); g.fill();
+  const put = (n, rot, px, py) => { const im = IMG[n]; if (!im) return; g.save(); if (rot) { g.translate(px, py); g.rotate(rot); g.translate(-px, -py); } g.drawImage(im, 0, 0, 400, 600); g.restore(); };
+  put('g-can'); put(gp('g-body', sk)); put('g-rarm'); put('g-wave', -0.12, 122, 344);
+  g.restore();
+}
+function savedText() {
+  let at = 0; try { at = +localStorage.getItem(KEY + '-at') || 0; } catch (e) {}
+  if (!at) return 'Saved automatically on this device';
+  const d = new Date(at), same = localStr(d) === TODAY;
+  return 'Saved automatically · last saved ' + (same ? 'today' : fmtShort(localStr(d))) + ' at ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+function renderPeople() {
+  const list = (G3 && window.Grove3D.people) || [], box = $('people');
+  $('people').hidden = $('peopleHead').hidden = list.length < 2;
+  box.innerHTML = '';
+  list.forEach(pp => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'skin'; b.setAttribute('role', 'radio');
+    b.dataset.person = pp.id; b.setAttribute('aria-checked', String(pp.id === store.person));
+    b.innerHTML = '<canvas aria-hidden="true"></canvas><span></span>' + (pp.id === store.person ? '<span class="on">In use</span>' : '');
+    b.children[1].textContent = pp.name; box.appendChild(b);
+  });
+  requestAnimationFrame(() => box.querySelectorAll('.skin').forEach(b => drawSkinPreview(b.querySelector('canvas'), curSkin(), b.dataset.person)));
+}
+$('people').addEventListener('click', e => {
+  const b = e.target.closest('[data-person]'); if (!b || b.dataset.person === store.person) return;
+  store.person = b.dataset.person; saveState(); renderSettings(); draw();
+  emitToasts([{ msg: b.children[1].textContent + ' is now looking after your garden', tone: 'good' }]);
+});
+function renderSettings() {
+  renderPeople();
+  const box = $('skins'); box.innerHTML = '';
+  SKINS.forEach(sk => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'skin'; b.setAttribute('role', 'radio');
+    b.dataset.skin = sk.id; b.setAttribute('aria-checked', String(sk.id === curSkin().id));
+    b.innerHTML = '<canvas aria-hidden="true"></canvas><span></span>' + (sk.id === curSkin().id ? '<span class="on">In use</span>' : '');
+    b.children[1].textContent = sk.name; box.appendChild(b);
+  });
+  requestAnimationFrame(() => box.querySelectorAll('.skin').forEach(b => drawSkinPreview(b.querySelector('canvas'), SKINS.find(k => k.id === b.dataset.skin))));
+  $('skySet').querySelectorAll('[data-sky]').forEach(x => x.setAttribute('aria-checked', String(x.dataset.sky === store.sky)));
+  $('savedTxt').textContent = savedText();
+}
+$('skins').addEventListener('click', e => {
+  const b = e.target.closest('[data-skin]'); if (!b || b.dataset.skin === store.skin) return;
+  store.skin = b.dataset.skin; saveState(); renderSettings(); draw();
+  emitToasts([{ msg: 'Your gardener is now wearing ' + curSkin().name, tone: 'good' }]);
+});
+$('skySet').addEventListener('click', e => {
+  const b = e.target.closest('[data-sky]'); if (!b) return;
+  store.sky = b.dataset.sky; saveState(); renderSky(); renderSettings(); snap(); draw();
+});
+$('setBtn').addEventListener('click', () => showScreen(screen === 'settings' ? backTo : 'settings'));
+$('setBack').addEventListener('click', () => showScreen(backTo));
+$('extraBackup').addEventListener('click', openData);
 document.querySelectorAll('[data-tab]').forEach(tb => tb.addEventListener('click', () => { try { showScreen(tb.dataset.tab); } catch (e) { document.querySelectorAll('.screen').forEach(sc => { sc.hidden = sc.dataset.screen !== tb.dataset.tab; }); } }));
 
 function renderAll() {
@@ -1644,9 +1965,9 @@ function openWelcome() {
 }
 
 function openData() {
-  const code = encodeState(state);
-  openSheet('<p class="eyebrow">Your data</p><h2 id="sheetTitle">Backup and restore</h2>' +
-    '<p class="note">Everything is saved in this browser only. Keep a backup code somewhere safe, so you can restore your garden if the browser data is cleared.</p>' +
+  const code = encodeState(store);
+  openSheet('<p class="eyebrow">Your data</p><h2 id="sheetTitle">Backup code</h2>' +
+    '<p class="note">Your garden already saves itself on this device. A backup code is an optional extra copy of all your trees, for moving to another phone or browser.</p>' +
     '<h3>Backup code</h3><textarea id="codeOut" readonly aria-label="Backup code"></textarea><div class="row"><button class="btn primary" type="button" id="copyCode">Copy code</button><button class="btn ghost" type="button" id="dataClose">Close</button></div>' +
     '<h3>Restore from a code</h3><textarea id="codeIn" placeholder="Paste a backup code here" aria-label="Paste a backup code"></textarea><div class="stack"><button class="btn ghost" type="button" id="restoreBtn">Restore this code</button></div>' +
     '<h3>Start over</h3><p class="note">Delete this garden and begin again from Day 1.</p><div class="stack" id="resetBox"><button class="btn ghost" type="button" id="resetAsk">Start over from Day 1</button></div><p class="msg" id="dataMsg" role="status"></p>', 'copyCode');
@@ -1670,10 +1991,10 @@ function openData() {
     $('resetYes').addEventListener('click', () => { closeSheet(); doReplant(); });
   });
 }
-$('dataBtn').addEventListener('click', openData);
+
 $('skyBtn').addEventListener('click', () => {
   store.sky = store.sky === 'auto' ? 'day' : store.sky === 'day' ? 'night' : 'auto';
-  saveState(); renderSky(); if (RM) { snap(); draw(); } else if (!running) { snap(); draw(); }
+  saveState(); renderSky(); if (screen === 'settings') renderSettings(); if (RM) { snap(); draw(); } else if (!running) { snap(); draw(); }
 });
 
 /* ---------- boot and timers ---------- */
@@ -1697,6 +2018,7 @@ loadSprites().then(() => {
 </script>
 
 <script>
+document.addEventListener('touchstart', function () {}, { passive: true });   /* lets iOS show the pressed state */
 if ('serviceWorker' in navigator) { window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); }
 </script>
 </body>
