@@ -353,6 +353,16 @@ textarea {
 .sky3 button { border: 0; background: none; border-radius: 999px; min-height: 40px; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
 .sky3 button[aria-checked="true"] { background: var(--btn); color: var(--on-btn); }
 .saved { display: flex; align-items: center; gap: 10px; margin: 6px 0 4px; font-weight: 600; font-size: 14.5px; }
+.peek-tog {
+  position: absolute; left: 12px; top: 12px; z-index: 2; border: 0; cursor: pointer; touch-action: manipulation;
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px;
+  font: 600 13px var(--font-body); color: #2a3a14; background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.18), 0 8px 14px rgba(0, 0, 0, 0.15), inset 0 1px 0 #fff;
+  transition: transform 0.08s ease, box-shadow 0.08s ease; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.peek-tog.back { color: #fff; background: linear-gradient(180deg, #62793a, #4a5c2a 60%); box-shadow: 0 4px 0 #2f3d18, 0 8px 14px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.peek-tog:active { transform: translateY(4px); box-shadow: 0 0 0 rgba(0, 0, 0, 0.18), 0 2px 5px rgba(0, 0, 0, 0.15); }
+.scene .chip { left: 12px; top: auto; bottom: 12px; }
 .saved i { width: 10px; height: 10px; border-radius: 50%; background: var(--good); flex: none; }
 
 /* ===== Toy-style 3D interface: chunky buttons with a pressable edge, raised clay cards, sunken wells ===== */
@@ -450,6 +460,7 @@ textarea {
       <div class="scene">
         <canvas id="scene" role="img" aria-label="Your garden"></canvas>
         <canvas id="scene3d" hidden aria-hidden="true"></canvas>
+        <button class="peek-tog" id="peekTog" type="button"></button>
         <div class="chip" id="chip">Day 1</div>
       </div>
       <div class="alert" id="alert" hidden></div>
@@ -1495,9 +1506,13 @@ function renderRoad() {
   const wk = Math.ceil(left / 5 * 7);
   $('road').innerHTML = '<h2>Road to a flourished garden</h2><p class="sub">Clean days needed for each stage. Dates assume every remaining day is clean.</p><ul class="road">' + rows + '</ul>' +
     '<p class="road-note">' + (left === 0 ? 'Your garden is fully flourished.' : 'A flourished garden needs 30 clean days: about ' + left + ' more days with no misses, or roughly ' + wk + ' days if you miss 2 a week.') + ' Misses never remove growth, but they cost health, and 3 in a week bring pests.</p>' +
-    '<div class="actions" style="margin-top:6px"><button class="btn ghost" type="button" id="peekBtn">' + (peek ? 'Show my actual garden' : 'Preview a fully flourished garden') + '</button></div>';
+    '<div class="actions" style="margin-top:6px"><button class="btn ghost" type="button" id="peekBtn">' + (peek ? 'Go back to my garden' : 'Show flourished garden') + '</button></div>';
   $('peekBtn').addEventListener('click', () => { peek = !peek; if (!peek) { snap(); syncRoster(true); } else { tq = []; } renderGarden(); if (!running) { snap(); draw(); } window.scrollTo({ top: 0, behavior: 'smooth' }); });
 }
+$('peekTog').addEventListener('click', () => {
+  if (peek) { exitPeek(); return; }
+  peek = true; tq = []; renderGarden(); if (!running) { snap(); draw(); }
+});
 function exitPeek() {
   if (!peek) return;
   peek = false; snap(); syncRoster(true); renderGarden();
@@ -1506,6 +1521,8 @@ function exitPeek() {
 }
 function renderGarden() {
   const s = S;
+  $('peekTog').className = 'peek-tog' + (peek ? ' back' : '');
+  $('peekTog').textContent = peek ? '← Go back to my garden' : '✨ Show flourished garden';
   $('chip').textContent = peek ? 'Preview · a flourished garden' : (s.dead ? 'The tree has died' : 'Day ' + s.dayNo + ' · ' + STAGES[s.stage].name);
   $('sub').textContent = peek ? 'Previewing 30 clean days' : state.name + ' · Day ' + s.dayNo;
   renderPills();
@@ -1524,10 +1541,7 @@ function renderGarden() {
   } else al.hidden = true;
 
   const a = $('actions'); a.innerHTML = '';
-  if (peek) {
-    a.innerHTML = '<button class="btn primary" type="button" id="peekExit">Show my actual garden</button>';
-    $('peekExit').addEventListener('click', exitPeek);
-  } else if (s.dead) {
+  if (s.dead) {
     a.innerHTML = '<button class="btn primary" type="button" id="replantBtn">Plant a new seed</button>';
     $('replantBtn').addEventListener('click', () => doReplant());
   } else if (s.today === 'p') {
