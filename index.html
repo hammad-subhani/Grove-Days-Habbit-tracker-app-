@@ -350,6 +350,9 @@ textarea {
 .card h3 { margin: 14px 0 0; font-size: 14px; font-weight: 600; }
 .skin .on { font-size: 11px; font-weight: 600; color: var(--on-btn); background: var(--btn); border-radius: 999px; padding: 1px 8px; }
 .sky3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--surface-2); border-radius: 999px; padding: 4px; margin-top: 8px; }
+.rem-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; font-weight: 600; font-size: 14.5px; }
+.rem-row input { width: auto; min-width: 120px; padding: 10px 12px; border-radius: 14px; border: 0; background: var(--surface-2); color: var(--ink); font: 600 16px var(--font-body); }
+.sky3 button { line-height: 1.15; padding: 4px 6px; }
 .sky3 button { border: 0; background: none; border-radius: 999px; min-height: 40px; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
 .sky3 button[aria-checked="true"] { background: var(--btn); color: var(--on-btn); }
 .saved { display: flex; align-items: center; gap: 10px; margin: 6px 0 4px; font-weight: 600; font-size: 14.5px; }
@@ -525,6 +528,34 @@ textarea {
           <button type="button" role="radio" data-sky="night">Night</button>
         </div>
       </div>
+      <div class="card" id="remCard" hidden>
+        <h2>Daily reminder</h2>
+        <p class="sub" id="remSub">Get a notification from Grove Days if you haven't marked your day yet.</p>
+        <div class="sky3" id="remSet" role="radiogroup" aria-label="Daily reminder" style="grid-template-columns:1fr 1fr">
+          <button type="button" role="radio" data-rem="on">On</button>
+          <button type="button" role="radio" data-rem="off">Off</button>
+        </div>
+        <div class="rem-row" id="remTimeRow"><label for="remTime">Remind me at</label><input type="time" id="remTime" class="field" value="21:00"></div>
+        <p class="note" id="remMsg" hidden></p>
+        <div class="stack" id="remTestRow"><button class="btn ghost" type="button" id="remTest">Send a test reminder</button></div>
+      </div>
+      <div class="card">
+        <h2>Sound</h2>
+        <p class="sub">Effects are taps, watering, rain and pests. Nature adds birdsong by day and crickets at night. Follows your phone's silent switch.</p>
+        <div class="sky3" id="soundSet" role="radiogroup" aria-label="Sound">
+          <button type="button" role="radio" data-sound="all">Effects + nature</button>
+          <button type="button" role="radio" data-sound="fx">Effects</button>
+          <button type="button" role="radio" data-sound="off">Off</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Garden animation</h2>
+        <p class="sub">The gardener walks and waters, birds and fireflies move. Turn it off to save battery.</p>
+        <div class="sky3" id="motionSet" role="radiogroup" aria-label="Garden animation" style="grid-template-columns:1fr 1fr">
+          <button type="button" role="radio" data-motion="on">On</button>
+          <button type="button" role="radio" data-motion="off">Off</button>
+        </div>
+      </div>
       <div class="card">
         <h2>Your data</h2>
         <p class="saved"><i aria-hidden="true"></i><span id="savedTxt">Saved automatically on this device</span></p>
@@ -555,6 +586,7 @@ textarea {
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1"></div>
 </div>
 
+<script src="push-config.js"></script>
 <script src="grove3d.js"></script>
 <script>
 (() => {
@@ -699,7 +731,10 @@ function decodeState(code) {
     const active = habits.some(h => h.id === s.active) ? s.active : habits[0].id;
     const skin = (typeof s.skin === 'string' && /^[a-z0-9-]{1,24}$/.test(s.skin)) ? s.skin : 'classic';
     const person = (typeof s.person === 'string' && /^[a-z0-9-]{1,24}$/.test(s.person)) ? s.person : 'hammad';
-    return { habits: habits, active: active, sky: sky, skin: skin, person: person };
+    const motion = s.motion === 'off' ? 'off' : 'on';
+    const sound = ['all', 'fx', 'off'].includes(s.sound) ? s.sound : 'all';
+    const rem = s.reminder && typeof s.reminder === 'object' ? { on: !!s.reminder.on, time: /^\d{2}:\d{2}$/.test(s.reminder.time || '') ? s.reminder.time : '21:00' } : { on: false, time: '21:00' };
+    return { habits: habits, active: active, sky: sky, skin: skin, person: person, motion: motion, sound: sound, reminder: rem };
   } catch (e) { return null; }
 }
 
@@ -745,7 +780,7 @@ function loadState() {
 }
 function saveState() { try { if (store) { localStorage.setItem(KEY, encodeState(store)); localStorage.setItem(KEY + '-at', String(Date.now())); } } catch (e) {} }
 const newId = () => 'h' + Date.now().toString(36).slice(-6) + Math.floor(Math.random() * 36).toString(36);
-const RM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+let RM = false;   /* garden animation is on unless turned off in Settings (store.motion = 'off') */
 const $ = id => document.getElementById(id);
 const todayStr = () => localStr(new Date());
 let TODAY = todayStr();
@@ -754,6 +789,10 @@ store = loadState();
 if (!store) { isNew = true; const id = newId(); store = { habits: [{ id: id, name: 'My first tree', plant: 'apple', start: TODAY, marks: {}, history: [] }], active: id, sky: 'auto', skin: 'classic' }; }
 if (!store.skin) store.skin = 'classic';
 if (!store.person) store.person = 'hammad';
+if (store.motion !== 'off') store.motion = 'on';
+if (!['all', 'fx', 'off'].includes(store.sound)) store.sound = 'all';
+if (!store.reminder) store.reminder = { on: false, time: '21:00' };
+RM = store.motion === 'off';
 /* ask the browser to keep this data for good, so it is never cleared to free space */
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
 state = store.habits.find(h => h.id === store.active) || store.habits[0];
@@ -1394,6 +1433,7 @@ function step(dt) {
   gardenerBrain(dt, cs, R, isNight());
   stepRabbit(dt, G, G.mode === 'play' && !G.walking);
   rosterTick += dt; if (rosterTick > 1) { rosterTick = 0; syncRoster(false); }
+  ambient(dt, cs, R, isNight());
 }
 function frame(ts) {
   if (!running) return;
@@ -1465,13 +1505,134 @@ function emitToasts(list) {
 }
 function pumpToasts() {
   if (tBusy || !tq.length || !overlay.hidden || document.hidden) return;
-  const e = tq.shift(); tBusy = true;
+  const e = tq.shift(); tBusy = true; if (e.tone === 'good') SFX.pop();
   const el = document.createElement('div'); el.className = 'toast ' + e.tone;
   const ic = e.tone === 'bad' ? '!' : e.tone === 'info' ? 'i' : '✓';
   el.innerHTML = '<i aria-hidden="true">' + ic + '</i><span></span>'; el.lastChild.textContent = e.msg;
   toastBox.innerHTML = ''; toastBox.appendChild(el);
   setTimeout(() => { el.classList.add('out'); }, 3700);
   setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); tBusy = false; pumpToasts(); }, 4000);
+}
+
+/* ---------- sounds: made on the fly with Web Audio, nothing to download ---------- */
+const SFX = (() => {
+  let ac = null, master = null, noiseBuf = null, unlocked = false;
+  const level = () => store.sound || 'all';                 /* 'all' | 'fx' | 'off' */
+  function init() {
+    if (ac) return ac;
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch (e) {}
+    ac = new AC(); master = ac.createGain(); master.gain.value = 0.55; master.connect(ac.destination);
+    noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    return ac;
+  }
+  function unlock() {
+    if (level() === 'off') return; init(); if (!ac) return;
+    if (ac.state === 'suspended') ac.resume();
+    if (!unlocked) { const b = ac.createBufferSource(); b.buffer = ac.createBuffer(1, 1, 22050); b.connect(master); b.start(0); unlocked = true; }
+  }
+  const ok = kind => { if (level() === 'off' || (kind === 'amb' && level() !== 'all')) return false; if (!init() || ac.state !== 'running') return false; return true; };
+  function tone(f, t, dur, type, g, f2) {
+    const o = ac.createOscillator(), v = ac.createGain(); o.type = type || 'sine';
+    o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    v.gain.setValueAtTime(0.0001, t); v.gain.exponentialRampToValueAtTime(g, t + Math.min(0.02, dur / 4)); v.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(v); v.connect(master); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function noise(t, dur, type, freq, g, q, attack) {
+    const src = ac.createBufferSource(), f = ac.createBiquadFilter(), v = ac.createGain();
+    src.buffer = noiseBuf; src.loop = true; f.type = type; f.frequency.value = freq; f.Q.value = q || 0.7;
+    v.gain.setValueAtTime(0.0001, t); v.gain.exponentialRampToValueAtTime(g, t + (attack || 0.05)); v.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(v); v.connect(master); src.start(t, Math.random()); src.stop(t + dur + 0.05);
+    return f;
+  }
+  const now = () => ac.currentTime + 0.01;
+  return {
+    unlock: unlock,
+    suspend: () => { if (ac && ac.state === 'running') ac.suspend(); },
+    resume: () => { if (ac && level() !== 'off') ac.resume(); },
+    tap() { if (!ok('fx')) return; tone(620, now(), 0.07, 'sine', 0.09, 340); },
+    pop() { if (!ok('fx')) return; tone(880, now(), 0.09, 'triangle', 0.06, 1200); },
+    clean() { if (!ok('fx')) return; const t = now(); [523, 659, 784, 1047].forEach((f, i) => tone(f, t + i * 0.09, 0.5, 'sine', 0.14)); },
+    water() { if (!ok('fx')) return; const t = now() + 0.35, f = noise(t, 1.6, 'bandpass', 1500, 0.11, 1.2, 0.2);
+      for (let k = 0; k < 8; k++) f.frequency.setValueAtTime(1100 + Math.random() * 900, t + k * 0.2);
+      for (let k = 0; k < 6; k++) tone(900 + Math.random() * 700, t + 0.2 + k * 0.22, 0.07, 'sine', 0.04, 1400 + Math.random() * 500); },
+    sparkle() { if (!ok('fx')) return; const t = now(); [1319, 1568, 1976, 2637, 3136].forEach((f, i) => tone(f, t + i * 0.06, 0.35, 'sine', 0.07)); },
+    rain() { if (!ok('fx')) return; const t = now(); noise(t, 2.2, 'bandpass', 2400, 0.1, 0.6, 0.4); noise(t + 0.5, 1.8, 'lowpass', 120, 0.35, 1, 0.08); tone(55, t + 0.5, 1.4, 'sine', 0.15, 38); },
+    buzz() { if (!ok('fx')) return; const t = now(), o = ac.createOscillator(), lfo = ac.createOscillator(), lg = ac.createGain(), f = ac.createBiquadFilter(), v = ac.createGain();
+      o.type = 'sawtooth'; o.frequency.value = 190; lfo.frequency.value = 28; lg.gain.value = 18; lfo.connect(lg); lg.connect(o.frequency);
+      f.type = 'lowpass'; f.frequency.value = 900; v.gain.setValueAtTime(0.0001, t); v.gain.exponentialRampToValueAtTime(0.06, t + 0.08); v.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+      o.connect(f); f.connect(v); v.connect(master); o.start(t); lfo.start(t); o.stop(t + 1.2); lfo.stop(t + 1.2); },
+    sad() { if (!ok('fx')) return; const t = now(); [392, 349, 311, 262].forEach((f, i) => tone(f, t + i * 0.28, 0.6, 'triangle', 0.1)); },
+    thud() { if (!ok('fx')) return; const t = now(); tone(140, t, 0.25, 'sine', 0.2, 50); noise(t, 0.2, 'lowpass', 400, 0.08); },
+    chirp() { if (!ok('amb')) return; const t = now(), n = 2 + (Math.random() * 3 | 0), b = 2600 + Math.random() * 1200;
+      for (let k = 0; k < n; k++) tone(b, t + k * 0.11, 0.08, 'sine', 0.035, b * 1.45); },
+    cricket() { if (!ok('amb')) return; const t = now(); for (let k = 0; k < 3; k++) for (let j = 0; j < 4; j++) tone(4400, t + k * 0.32 + j * 0.035, 0.025, 'sine', 0.018); },
+    hoot() { if (!ok('amb')) return; const t = now(); tone(390, t, 0.35, 'sine', 0.06, 350); tone(370, t + 0.5, 0.55, 'sine', 0.06, 330); },
+    bee() { if (!ok('amb')) return; const t = now(); tone(230, t, 0.9, 'sawtooth', 0.008, 250); }
+  };
+})();
+let ambNext = 0;
+function ambient(dt, cs, R, night) {
+  if (screen !== 'garden' || cs.dead || document.hidden) return;
+  const now = performance.now(); if (!ambNext) ambNext = now + 2000; if (now < ambNext) return;
+  ambNext = now + 2500 + Math.random() * 5000;
+  if (night) { SFX.cricket(); if (R.owl && Math.random() < 0.25) setTimeout(SFX.hoot, 900); }
+  else if ((R.bird || 0) > 0 || Math.random() < 0.5) SFX.chirp();
+  else if (R.bee && Math.random() < 0.5) SFX.bee();
+}
+['pointerdown', 'touchend', 'keydown'].forEach(ev => document.addEventListener(ev, SFX.unlock, { passive: true }));
+document.addEventListener('click', e => { if (e.target.closest('.btn, .seg, .tab, .icon-btn, .tedit, .hpill, .skin, .day, .sky3 button, .peek-tog, .seed-pick button, .tcard')) SFX.tap(); }, true);
+document.addEventListener('visibilitychange', () => { if (document.hidden) SFX.suspend(); else SFX.resume(); });
+
+/* ---------- daily reminder: push subscription is sent to the reminder server ---------- */
+const PUSHCFG = window.GROVE_PUSH || {};
+const REM_EP = KEY + '-push-ep';
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = () => window.navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+function b64uToBytes(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
+async function remPost(path, body) {
+  const r = await fetch(PUSHCFG.server.replace(/\/+$/, '') + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({})); if (!r.ok || j.error) throw new Error(j.error || ('server ' + r.status)); return j;
+}
+function remBlocked() {
+  if (!PUSHCFG.server || !PUSHCFG.key) return 'Reminders are not set up yet. Add your reminder server address to push-config.js.';
+  if (isIOS && !isStandalone()) return 'On iPhone, reminders only work in the Home Screen app. Add Grove Days to your Home Screen, open it from there, then turn this on.';
+  if (!pushSupported()) return 'This browser cannot show reminders.';
+  if (Notification.permission === 'denied') return 'Notifications are blocked. Allow them in your phone settings for Grove Days, then try again.';
+  return '';
+}
+function allMarkedToday() { return store.habits.every(h => !!h.marks[TODAY]); }
+async function remSubscribe() {
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') throw new Error('Notifications were not allowed.');
+  const reg = await swReady();
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(PUSHCFG.key) });
+  const j = sub.toJSON();
+  await remPost('/subscribe', { sub: { endpoint: j.endpoint, keys: j.keys }, time: store.reminder.time, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, done: allMarkedToday() ? TODAY : null });
+  try { localStorage.setItem(REM_EP, j.endpoint); } catch (e) {}
+}
+const swReady = () => Promise.race([navigator.serviceWorker.ready, new Promise((_, no) => setTimeout(() => no(new Error('The app is still starting up. Close it, open it again and retry.')), 6000))]);
+async function remUnsubscribe() {
+  let ep = null; try { ep = localStorage.getItem(REM_EP); } catch (e) {}
+  if (ep && PUSHCFG.server) remPost('/unsubscribe', { endpoint: ep }).catch(() => {});   /* tell the server first */
+  try { localStorage.removeItem(REM_EP); } catch (e) {}
+  try { const reg = await swReady(), sub = await reg.pushManager.getSubscription(); if (sub) { if (!ep && PUSHCFG.server) remPost('/unsubscribe', { endpoint: sub.endpoint }).catch(() => {}); await sub.unsubscribe(); } } catch (e) {}
+}
+function remDoneToday() {
+  if (!store.reminder || !store.reminder.on || !PUSHCFG.server || !allMarkedToday()) return;
+  let ep = null; try { ep = localStorage.getItem(REM_EP); } catch (e) {}
+  if (ep) remPost('/done', { endpoint: ep, date: TODAY }).catch(() => {});
+}
+function remMsg(txt, warn) { const m = $('remMsg'); m.hidden = !txt; m.textContent = txt || ''; m.classList.toggle('warn', !!warn); }
+function renderReminder() {
+  $('remCard').hidden = !(PUSHCFG.server && PUSHCFG.key);   /* only shown once a reminder server is set in push-config.js */
+  const on = !!store.reminder.on, blocked = remBlocked();
+  $('remSet').querySelectorAll('[data-rem]').forEach(x => x.setAttribute('aria-checked', String((x.dataset.rem === 'on') === on)));
+  $('remTime').value = store.reminder.time; $('remTimeRow').hidden = !on; $('remTestRow').hidden = !on;
+  if (blocked && !on) remMsg(blocked, true); else if (!$('remMsg').dataset.keep) remMsg('');
 }
 
 /* ---------- UI ---------- */
@@ -1772,6 +1933,7 @@ function openDeleteTree(id) {
 }
 function deleteTree(id) {
   const h = store.habits.find(x => x.id === id); if (!h) return;
+  SFX.thud();
   if (store.habits.length < 2) {
     const nid = newId();
     store.habits = [{ id: nid, name: 'My first tree', plant: 'apple', start: TODAY, marks: {}, history: [] }];
@@ -1847,6 +2009,9 @@ function renderSettings() {
   requestAnimationFrame(() => box.querySelectorAll('.skin').forEach(b => drawSkinPreview(b.querySelector('canvas'), SKINS.find(k => k.id === b.dataset.skin))));
   $('skySet').querySelectorAll('[data-sky]').forEach(x => x.setAttribute('aria-checked', String(x.dataset.sky === store.sky)));
   $('savedTxt').textContent = savedText();
+  renderReminder();
+  $('soundSet').querySelectorAll('[data-sound]').forEach(x => x.setAttribute('aria-checked', String(x.dataset.sound === store.sound)));
+  $('motionSet').querySelectorAll('[data-motion]').forEach(x => x.setAttribute('aria-checked', String(x.dataset.motion === store.motion)));
 }
 $('skins').addEventListener('click', e => {
   const b = e.target.closest('[data-skin]'); if (!b || b.dataset.skin === store.skin) return;
@@ -1859,6 +2024,37 @@ $('skySet').addEventListener('click', e => {
 });
 $('setBtn').addEventListener('click', () => showScreen(screen === 'settings' ? backTo : 'settings'));
 $('setBack').addEventListener('click', () => showScreen(backTo));
+$('remSet').addEventListener('click', async e => {
+  const b = e.target.closest('[data-rem]'); if (!b) return;
+  const want = b.dataset.rem === 'on'; if (want === store.reminder.on) return;
+  if (want) {
+    const blocked = remBlocked(); if (blocked) { remMsg(blocked, true); return; }
+    remMsg('Turning on…');
+    try { store.reminder.on = true; await remSubscribe(); saveState(); renderReminder(); remMsg('Done. You will get a reminder at ' + store.reminder.time + ' on days you have not marked yet.'); }
+    catch (err) { store.reminder.on = false; saveState(); renderReminder(); remMsg('Could not turn on reminders: ' + err.message, true); }
+  } else { store.reminder.on = false; saveState(); renderReminder(); remMsg('Reminders are off.'); remUnsubscribe(); }
+});
+$('remTime').addEventListener('change', async () => {
+  const t = $('remTime').value; if (!/^\d{2}:\d{2}$/.test(t)) return;
+  store.reminder.time = t; saveState();
+  if (store.reminder.on) { try { await remSubscribe(); remMsg('Reminder time changed to ' + t + '.'); } catch (err) { remMsg('Could not update the time: ' + err.message, true); } }
+});
+$('remTest').addEventListener('click', async () => {
+  let ep = null; try { ep = localStorage.getItem(REM_EP); } catch (e) {}
+  if (!ep) { remMsg('Turn reminders off and on again, then try the test.', true); return; }
+  remMsg('Sending…');
+  try { await remPost('/test', { endpoint: ep }); remMsg('Sent. It should arrive in a few seconds.'); } catch (err) { remMsg('The test did not go through: ' + err.message, true); }
+});
+$('soundSet').addEventListener('click', e => {
+  const b = e.target.closest('[data-sound]'); if (!b || b.dataset.sound === store.sound) return;
+  store.sound = b.dataset.sound; saveState(); renderSettings();
+  if (store.sound === 'off') SFX.suspend(); else { SFX.unlock(); SFX.pop(); }
+});
+$('motionSet').addEventListener('click', e => {
+  const b = e.target.closest('[data-motion]'); if (!b || b.dataset.motion === store.motion) return;
+  store.motion = b.dataset.motion; RM = store.motion === 'off'; saveState(); renderSettings();
+  if (RM) { stopLoop(); snap(); draw(); }
+});
 $('extraBackup').addEventListener('click', openData);
 document.querySelectorAll('[data-tab]').forEach(tb => tb.addEventListener('click', () => { try { showScreen(tb.dataset.tab); } catch (e) { document.querySelectorAll('.screen').forEach(sc => { sc.hidden = sc.dataset.screen !== tb.dataset.tab; }); } }));
 
@@ -1903,7 +2099,7 @@ function showResult(info) {
   if (kind === 'c') {
     const su = stageUpText(b, a);
     notes += '<p class="note">Current streak: <strong>' + a.streak + ' ' + (a.streak === 1 ? 'day' : 'days') + '</strong>.</p>';
-    if (su) notes += '<p class="note"><strong>' + su + '</strong></p>';
+    if (su) { notes += '<p class="note"><strong>' + su + '</strong></p>'; SFX.sparkle(); }
     if (b.pest && !a.pest) notes += '<p class="note"><strong>The pests have left your tree.</strong></p>';
   } else {
     if (a.dead) notes += '<p class="note warn">Your tree did not survive. You can plant a new seed and start again from Day 1.</p>';
@@ -1945,6 +2141,10 @@ function markDate(date, v, fromGarden) {
   state.marks[date] = v; saveState();
   const after = simulate(state, TODAY);
   const info = { date: date, v: v, before: before, after: after };
+  if (date === TODAY) remDoneToday();
+  if (v === 'c') { SFX.clean(); if (!after.dead) SFX.water(); }
+  else if (after.dead && !before.dead) SFX.sad();
+  else { SFX.rain(); if (!before.pest && after.pest) setTimeout(SFX.buzz, 1200); }
   if (!RM && v === 'c' && !after.dead) tq.unshift({ msg: 'The gardener is watering your tree', tone: 'info' });
   renderAll();
   if (!RM) {
